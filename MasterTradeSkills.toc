@@ -9,9 +9,6 @@
 ## OptionalDeps: MyAddons
 ## DefaultState: enabled
 ## SavedVariables: MTS_DATA
-
-Localization.lua
-MasterTradeSkills.lua
 MasterTradeSkills.xml
 
 

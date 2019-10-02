@@ -42,23 +42,25 @@ function MasterTradeSkills_OnLoad(self)
 	self:RegisterEvent("TRADE_SKILL_UPDATE");
 	self:RegisterEvent("VARIABLES_LOADED");
 	self:RegisterEvent("UNIT_NAME_UPDATE");
-	self:RegisterEvent("PLAYER_ENTERING_WORLD");
-	self:RegisterEvent("CRAFT_SHOW");
-	self:RegisterEvent("CRAFT_UPDATE");
-
-		if (GetLocale() == "deDE") then
+	self:RegisterEvent("PLAYER_ENTERING_WORLD");	
+	self:RegisterEvent("CRAFT_SHOW");	
+	self:RegisterEvent("CRAFT_UPDATE");	
+	 
+	-- -- hook into the text link
+	-- MTS_Original_SetItemRef = SetItemRef;
+	-- SetItemRef = MTS_SetItemRef;
+	
+	if (GetLocale() == "deDE") then
     	MasterTradeSkills_LoadGerman();
     	ReagentData_LoadGerman();
 	elseif (GetLocale() == "frFR") then
     	MasterTradeSkills_LoadFrench();
-		ReagentData_LoadFrench();
-	else
-		ReagentData_LoadEnglish();
+    	ReagentData_LoadFrench();
 	end
 end
 
 -- OnEvent event
-function MasterTradeSkills_OnEvent(self,event, arg1, arg2, arg3, arg4, arg5)
+function MasterTradeSkills_OnEvent( self, event, arg1)
 	-- Check the current event
 	-- MasterTradeSkills_Write(event);
 	if (event == "ADDON_LOADED" and arg1 == MTS_NAME) then
@@ -70,17 +72,16 @@ function MasterTradeSkills_OnEvent(self,event, arg1, arg2, arg3, arg4, arg5)
 		-- Save the bindings
 		MasterTradeSkills_SaveBindings();
 	elseif (event == "TRADE_SKILL_UPDATE") then
-		MasterTradeSkills_ReadRecipes("trade");
+		MasterTradeSkills_ReadRecipes();
 	elseif (event == "CRAFT_UPDATE") then
-		MasterTradeSkills_ReadRecipes("craft");
+		MasterTradeSkills_ReadCrafts();
 	elseif( event=="VARIABLES_LOADED" ) then
 		MTS_VARIABLES_LOADED = true;
 		MasterTradeSkills_InitData();
 		if (IRR_ItemTypes) then
 			LINK_WRANGLER_CALLER['MasterTradeSkills'] = 'MasterTradeSkills_AddStuff';
 		end
-	end
-	if(event=="PLAYER_ENTERING_WORLD")then
+	elseif( ((event=="UNIT_NAME_UPDATE") and (arg1=="player")) or (event=="PLAYER_ENTERING_WORLD") ) then
 		local char_name = UnitName( "player" )
 		if((char_name ~= nil) and (char_name ~= "") and (char_name ~= UNKNOWNOBJECT) and (char_name ~= UNKNOWNBEING)) then
 			MTS_PLAYER_NAME_KNOWN = true;
@@ -95,7 +96,7 @@ end
 --------------------------------------------------------------------------------------------------
 
 -- Initialize the addon
-function MasterTradeSkills_Initialize()
+function MasterTradeSkills_Initialize(self, event, MasterTradeSkills)
 -- Check if myAddOns is loaded
 	if (myAddOnsFrame_Register) then
 		local MasterTradeSkillsDetails = {
@@ -106,7 +107,7 @@ function MasterTradeSkills_Initialize()
 			porter = "Deeznutzs",
 			email = "sparky.t588@gmail.com",
 			category = MYADDONS_CATEGORY_PROFESSIONS,
-			optionsframe = "MTS_OptionsFrame"
+			optionsframe = "MTS_OptionsFrame" 
 		};
 		-- Initialize the addon's help
 		local MasterTradeSkillsHelp = 	MTS_MYADDON_HELP;
@@ -115,11 +116,11 @@ function MasterTradeSkills_Initialize()
 	end
 -- Display a message in the ChatFrame indicating a successful load of the addon
 	-- MasterTradeSkills_Write(MTS_LOADED);
-
+	
 	SLASH_MasterTradeSkills1 = "/MasterTradeSkills";
-	SLASH_MasterTradeSkills2 = "/mts";
+	SLASH_MasterTradeSkills2 = "/mts"; 
 	SlashCmdList["MasterTradeSkills"] = MasterTradeSkills_Command;
-
+	
 	if (ReagentData) then
 		if ( not ReagentData['crafted']['alchemy']) then
 			ReagentData_LoadAlchemy();
@@ -152,9 +153,9 @@ function MasterTradeSkills_Initialize()
 			ReagentData_LoadTailoring();
 		end
 	end
-
+	
 	MasterTradeSkills_Write(MTS_LOADED);
-
+	
 end
 
 function MasterTradeSkills_InitData()
@@ -175,7 +176,7 @@ function MasterTradeSkills_InitData()
 		MTS_DATA.Version = MTS_DATA_VERSION;
 
 		-- Find character name
-		local nb_chars = table.getn(MTS_DATA.Characters);
+		local nb_chars = table.getn( MTS_DATA.Characters );
 		MTS_CHAR_INDEX = nil;
 
 		for i = 1, nb_chars do
@@ -211,7 +212,7 @@ function MasterTradeSkills_InitData()
 				for i = 1, table.getn(MTS_TRADESKILLS) do
 					MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS[i] = 1;
 				end
-
+				
 				MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_MAIN_COLOR = "|cFF00FF11";
 				MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_RECIPE_COLOR = "|cFFFFB444";
 				MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_SOURCE_COLOR = "|cFF56B59D";
@@ -224,8 +225,8 @@ function MasterTradeSkills_InitData()
 					[4] = "|cFFFF9900";
 					[5] = "|cFFFF0000";
 				};
-
-
+				
+						
 			end
 		end
 		if (not MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW ) then MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW = 10; end
@@ -253,12 +254,12 @@ function MasterTradeSkills_InitData()
 		MTS_OptionsFrameCheck_AltName:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME);
 		MTS_OptionsFrameCheck_NoMinimap:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER);
 
-
+		
 		MTS_OptionsFrameText_ShowNumToShow:SetNumber(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW);
 		for i = 1, table.getn(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS) do
 			getglobal("MTS_OptionsFrameCheck_ShowTradeSkills" .. i):SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS[i]);
 		end
-
+		
 		-- Make the optionspanel right (fill in the right text)
 		for i = 1, table.getn(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS) do
 			getglobal("MTS_OptionsFrameText_ShowTradeSkills" .. i):SetText(MTS_TRADESKILLS[i]);
@@ -278,15 +279,15 @@ function MTS_Options_ToggleShowRev()
 end
 
 function MTS_Options_ToggleShowDif(dif)
-	 if ( dif == 1 ) then
+	 if ( dif == 1 ) then 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWDIF1 = MTS_OptionsFrameCheck_Show_Dif1:GetChecked();
-	elseif ( dif == 2 ) then
+	elseif ( dif == 2 ) then 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWDIF2 = MTS_OptionsFrameCheck_Show_Dif2:GetChecked();
-	elseif ( dif == 3 ) then
+	elseif ( dif == 3 ) then 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWDIF3 = MTS_OptionsFrameCheck_Show_Dif3:GetChecked();
-	elseif ( dif == 4 ) then
+	elseif ( dif == 4 ) then 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWDIF4 = MTS_OptionsFrameCheck_Show_Dif4:GetChecked();
-	elseif ( dif == 5 ) then
+	elseif ( dif == 5 ) then 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWDIF5 = MTS_OptionsFrameCheck_Show_Dif5:GetChecked();
 	end
 end
@@ -296,14 +297,14 @@ function  MasterTradeSkills_Command(msg)
 	msg = string.lower(msg)
 	if(msg == "help") then
 		local MTS_HelpNr = table.getn(MTS_HELP);
-		for i=1,MTS_HelpNr do
+		for i=1,MTS_HelpNr do 
 			MasterTradeSkills_Write(MTS_HELP[i]);
-		end
+		end		
 	elseif(msg == "off") then
 		if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE == 1) then
 			MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE = 0;
 		MTS_OptionsFrameCheck_Enabled:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE);
-			MasterTradeSkills_Write(MTS_DISABLED);
+			MasterTradeSkills_Write(MTS_DISABLED);			
 		end
 	elseif(msg == "on") then
 		if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE == 0) then
@@ -314,68 +315,68 @@ function  MasterTradeSkills_Command(msg)
 	elseif(msg == "toggle") then
 		MTS_Options_Toggle();
 	elseif(msg == "options") then
-		if (MTS_OptionsFrame:IsVisible()) then
+		if (MTS_OptionsFrame:IsVisible()) then 
 			MTS_OptionsFrame:Hide();
-		else
+		else 
 			MTS_OptionsFrame:Show();
 		end
 	elseif(msg == "show" ) then
-		MTS_RecipeList:SetFont(GameFontNormal:GetFont(), 13, "NORMAL");
+		MTS_RecipeList:SetFont(GameFontNormal:GetFont(), 13, "NORMAL"); 
 		--MTS_RecipeFrameButtonRecurse:SetFont(GameFontNormal:GetFont(), 10, "NORMAL");
 		if (not MTS_RecipeList:GetScript("OnMouseWheel")) then
-			MTS_RecipeList:SetScript("OnMouseWheel",
+			MTS_RecipeList:SetScript("OnMouseWheel", 
 			function ()
-				if (arg1 > 0) then
-					if (IsShiftKeyDown()) then
-						self:ScrollToTop();
+				if (arg1 > 0) then 
+					if (IsShiftKeyDown()) then 
+						self:ScrollToTop();  
 						for i = 1 , 34 do
 							self:ScrollDown()
 						end
-					else
+					else 
 						self:ScrollUp()
 						self:ScrollUp()
-						self:ScrollUp()
+						self:ScrollUp() 
 					end
 				elseif (arg1 < 0) then
-					if (IsShiftKeyDown()) then
+					if (IsShiftKeyDown()) then 
 						self:ScrollToBottom();
-					else
-						self:ScrollDown()
-						self:ScrollDown()
-						self:ScrollDown()
+					else 	
+						self:ScrollDown() 
+						self:ScrollDown() 
+						self:ScrollDown() 
 					end
 				end
 			end
 			);
 		end
 		MTS_RecipeList:EnableMouseWheel(1);
-		if (MTS_RecipeFrame:IsVisible()) then
+		if (MTS_RecipeFrame:IsVisible()) then 
 			MTS_RecipeFrame:Hide();
-		else
+		else 
 			MTS_RecipeFrame:Show();
-			MTS_RecipeList:ScrollToTop();
+			MTS_RecipeList:ScrollToTop(); 
 			for i = 1 , 34 do
 				MTS_RecipeList:ScrollDown()
 			end
 		end
-
+		
 		-- Check if ReagentData is loaded
 		if (ReagentData ~= nil) then
 			MTS_REAGENT_DATA = true;
 			MasterTradeSkills_Write("MasterTradeSkill: ReagentData loaded ok.");
-		end
+		end	
 	else
 		if (MTS_REAGENT_DATA == false) then
 			MasterTradeSkills_Write("MasterTradeSkill: ReagentData isn't loaded yet.");
 		else
 			local professions = ReagentData_GetProfessions(msg);
-			if ( professions == nil ) then
+			if ( professions == nil ) then 
 		MasterTradeSkills_Write(MTS_WRONGSLASH)
 			else
 				MTS_RecipeFrameHeaderText:SetText(msg);
 				MasterTradeSkills_CheckTooltipInfo(ItemRefTooltip, name);
 			end
-		end
+		end 
 	end
 end
 
@@ -385,8 +386,8 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 	-- Check if ReagentData is loaded
 	if (ReagentData ~= nil) then
 		MTS_REAGENT_DATA = true;
-	end
-
+	end	
+	
 	if (MTS_REAGENT_DATA == false) then
 		MasterTradeSkills_Write("MasterTradeSkill: ReagentData isn't loaded yet.");
 	else
@@ -403,8 +404,8 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 		local count = {};
 		for i=1, MTS_Max do
 			count[MTS_TRADESKILLS[i]] = 0;
-		end
-
+		end		
+		
 
 		local endsource = 0;
 		local skilllevel_color = "";
@@ -414,15 +415,15 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 		local MTS_TOOLTIP_DB = {};
 		local MTS_TOOLTIP_SKILLEVEL = 0;
 		local MTS_IS_TRADESKILL = 0;
-
-		if ( getn(professions) == 0 ) then frame:Show(); return; end
+		
+		if ( getn(professions) == 0 ) then frame:Show(); return; end  
 		-- Loop through the professions and recipes
 		for key, value in pairs(professions) do
 
 			MTS_IS_TRADESKILL = MasterTradeSkill_IsTradeSkill(value);
 			if (MTS_IS_TRADESKILL ~= 0 and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS[MTS_IS_TRADESKILL] ~= 0) then
 				 local MTS_TradeSkill = MTS_TRADESKILLS_NAME[MTS_IS_TRADESKILL];
-
+				
 				-- Clear Tooltip Database
 				MTS_TOOLTIP_DB = {};
 				MTS_LIST_DB = {};
@@ -463,16 +464,16 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 													AltKnown = 0
 												end
 											end
-										else
+										else 
 										local nb_chars = table.getn( MTS_DATA.Characters );
 											for i=1, nb_chars do
-												if (MTS_DATA[value][localeRecipes].LearntBy[i] ~= nil ) then
+												if (MTS_DATA[value][localeRecipes].LearntBy[i] ~= nil ) then 
 														for q=1,4 do
 															if (MTS_DATA[value][localeRecipes].LearntBy[i] == MTS_TRADESKILL_SKILLLEVEL[q]) then
 																Altskilllevel_color = MTS_DATA.Characters[i].Options.MTS_TRADESKILL_SKILLLEVEL_COLOR[q];
 															end
 														end
-													if ( MTS_DATA.Characters[i].Realm == MTS_DATA.Characters[MTS_CHAR_INDEX].Realm and MTS_DATA.Characters[i].Faction == MTS_DATA.Characters[MTS_CHAR_INDEX].Faction) then
+													if ( MTS_DATA.Characters[i].Realm == MTS_DATA.Characters[MTS_CHAR_INDEX].Realm and MTS_DATA.Characters[i].Faction == MTS_DATA.Characters[MTS_CHAR_INDEX].Faction) then 
 													AltKnownBy = AltKnownBy .."  |r" .. Altskilllevel_color .. "[".. MTS_DATA.Characters[i].Name .."]|r";
 													end
 												end
@@ -482,7 +483,7 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 								end
 							end
 							if (skilllevel_color == ""  ) then
-								if ( AltKnownBy ~= "") then
+								if ( AltKnownBy ~= "") then 
 									skilllevel_color = MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_SOURCE_COLOR;
 								else
 									skilllevel_color = MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_TRADESKILL_SKILLLEVEL_COLOR[5];
@@ -520,29 +521,29 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 							end
 							-- MasterTradeSkills_Write(totalcount .. " of " .. MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW);
 							-- Options: How Many so far Vs Number to show
-							if ( totalcount > MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW -1 ) then
+							if ( totalcount > MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_NUMTOSHOW -1 ) then 
 								MTS_ShowTooltip = false;
 							end
-
+							
 								local localeRecipes = MTS_RECIPENAME[Recipes];
-								if (localeRecipes == nil) then
+								if (localeRecipes == nil) then 
 									localeRecipes = Recipes
 									MasterTradeSkills_Write(MTS_UNKNOWN..Recipes);
 								end
-
+								
 								-- Source Locales
-									if ( source == "Vendor") then source = MTS_RVENDOR;
-									elseif ( source == "Trainer") then source = MTS_RTRAINER;
-									elseif ( source == "Drop") then source = MTS_RDROP;
-									elseif ( source == "Unknown") then source = MTS_RUNKNOWN;
-									elseif ( source == "Quest") then source = MTS_RQUEST;
+									if ( source == "Vendor") then source = MTS_RVENDOR; 
+									elseif ( source == "Trainer") then source = MTS_RTRAINER; 
+									elseif ( source == "Drop") then source = MTS_RDROP; 
+									elseif ( source == "Unknown") then source = MTS_RUNKNOWN; 
+									elseif ( source == "Quest") then source = MTS_RQUEST; 
 									end
 
 								isreagent = {};
 								isreagent = ReagentData_GetProfessions(localeRecipes);
 									prechar = " -";
 								if ( isreagent == nil ) then
-
+								
 								else
 									for key, value in pairs(isreagent) do
 									prechar = "+";
@@ -562,17 +563,17 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 										skill = "?";
 									end
 									textright = textright .. MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_SKILL_COLOR_LEARNABLE .. "(" ..  skill .. ")|r";
-								end
+								end	
 								count[value] = count[value] + 1;
-								-- If self is the first time a recipe is being added, add a explanation line
-								if (count[value] == 1) then
+								--If self is the first time a recipe is being added, add a explanation line
+								if (count[value] == 1) then 
 									if ( MTS_ShowTooltip == true and MTS_RECURSE == false ) then
 										frame:AddDoubleLine(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_MAIN_COLOR .. MTS_RECIPES .. "|r", MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_MAIN_COLOR .. value .. " (" .. MTS_SkillLevel .. ")|r");
 									end
 									MTS_RecipeList:AddMessage(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_MAIN_COLOR .. MTS_RECIPES .. "|r" .. "    ".. MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_MAIN_COLOR .. value .. " (" .. MTS_SkillLevel .. ")|r");
 								end
-								if (AltKnownBy ~= "" and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME == 1 ) then
-								   textright =  AltKnownBy;
+								if (AltKnownBy ~= "" and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME == 1 ) then 
+								   textright =  AltKnownBy;			
 								end
 								-- Add the tooltip
 								-- MasterTradeSkills_Write(textleft .." = ".. textright)
@@ -581,17 +582,18 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 								for i=1,5 do
 									if(skilllevel_color== MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_TRADESKILL_SKILLLEVEL_COLOR[i]) then
 										MTS_TOOLTIP_SKILLEVEL = i;
-										if ( MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM == 1 ) then
+										if ( MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM == 1 ) then 
 											if (MTS_TOOLTIP_SKILLEVEL == 5) then MTS_TOOLTIP_SKILLEVEL = 0; end
 										end
 									end
 								end
 							if (MTS_ShowTooltip == true) then
-								totalcount = totalcount+1
-								table.insert(MTS_TOOLTIP_DB, {skilllvl=MTS_TOOLTIP_SKILLEVEL,{name=Recipes, textl=textleft, textr=textright}});
-							end
+								--totalcount = totalcount+1
+							-- 	table.insert(MTS_TOOLTIP_DB, {skilllvl=MTS_TOOLTIP_SKILLEVEL,{name=Recipes, textl=textleft, textr=textright}});
+							-- end
+								
 								table.insert(MTS_LIST_DB, {skilllvl=MTS_TOOLTIP_SKILLEVEL,{name=Recipes, textl=textleft, textr=textright}});
-
+							end
 						end
 					end
 				end
@@ -599,7 +601,7 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 				for i=1, table.getn(MTS_TOOLTIP_DB) do
 					-- TODO: Alas, self extra sort doesn't work
 					--table.sort(MTS_TOOLTIP_DB[i], MTS_CompareName);
-					if (MTS_RECURSE == false) then
+					if (MTS_RECURSE == false) then 
 						for j=1, table.getn(MTS_TOOLTIP_DB[i]) do
 							frame:AddDoubleLine(MTS_TOOLTIP_DB[i][j].textl, MTS_TOOLTIP_DB[i][j].textr);
 						end
@@ -611,7 +613,7 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 					-- TODO: Alas, self extra sort doesn't work
 					--table.sort(MTS_LIST_DB[i], MTS_CompareName);
 					for j=1, table.getn(MTS_LIST_DB[i]) do
-							MTS_RecipeList:AddMessage(MTS_LIST_DB[i][j].textl .." - ".. MTS_LIST_DB[i][j].textr);
+							MTS_RecipeList:AddMessage(MTS_LIST_DB[i][j].textl .." - ".. MTS_LIST_DB[i][j].textr);			
 								if (MTS_RECURSE == true and strsub(MTS_LIST_DB[i][j].textl,12,12) == "+" ) then
 									recus = string.find(MTS_LIST_DB[i][j].textl,"|",25)
 									RECURSENAME = strsub(MTS_LIST_DB[i][j].textl,25,recus - 1)
@@ -624,25 +626,25 @@ function MasterTradeSkills_CheckTooltipInfo(frame, name)
 		end
 	end
 	local RepList = MTS_RecipeList:GetNumMessages()
-	if ( RepList < 35 ) then
+	if ( RepList < 35 ) then 
 		for i = RepList, 35 do
 			MTS_RecipeList:AddMessage("   ");
 		end
 	end
-	MTS_RecipeList:ScrollToTop();
+	MTS_RecipeList:ScrollToTop(); 
 	for i = 1 , 34 do
 		MTS_RecipeList:ScrollDown()
 	end
 	-- Finally, update the frame
-
+	
 	frame:Show();
 end
 
 function MTS_Recurse()
 name = MTS_RecipeFrameHeaderText:GetText();
-MTS_RECURSE = true;
-MasterTradeSkills_CheckTooltipInfo(GameTooltip, name);
 MTS_RECURSE = false;
+MasterTradeSkills_CheckTooltipInfo(GameTooltip, name);
+MTS_RECURSE = true;
 end
 
 function MasterTradeSkills_CheckRecurse(name)
@@ -650,7 +652,7 @@ function MasterTradeSkills_CheckRecurse(name)
 		local recurseRecipes = "";
 		local recurseReagents = "";
 		local AltKnownBy = "";
-		if ( recurseprofessions == nil ) then return; end
+		if ( recurseprofessions == nil ) then return; end  
 		-- Loop through the professions and recipes
 		for key, value in recurseprofessions do
 
@@ -661,19 +663,19 @@ function MasterTradeSkills_CheckRecurse(name)
 
 				for recurseRecipes in ReagentData['crafted'][MTS_RecurseTradeSkill] do
 					for recurseReagents in ReagentData['crafted'][MTS_RecurseTradeSkill][recurseRecipes]['reagents'] do
-						if (key ==1) then
+						if (key ==1) then 
 								table.sort(ReagentData['crafted'][MTS_RecurseTradeSkill][recurseRecipes]['reagents'],  MTS_CompareSkilllvl);
 						end
 						if (name == recurseReagents) then
 						skill = ReagentData['crafted'][MTS_RecurseTradeSkill][recurseRecipes]['skill'];
 						source = ReagentData['crafted'][MTS_RecurseTradeSkill][recurseRecipes]['source'];
-
+						
 							-- Look if the skill is know, and what color it is
 							skilllevel_color = "|cffff0000";
 							local AltKnown = 0;
 							local AltKnownBy = "";
 							local localeRecipes = MTS_RECIPENAME[recurseRecipes];
-								if (localeRecipes == nil) then
+								if (localeRecipes == nil) then 
 									localeRecipes = recurseRecipes
 									MasterTradeSkills_Write(MTS_UNKNOWN..recurseRecipes);
 								end
@@ -692,16 +694,16 @@ function MasterTradeSkills_CheckRecurse(name)
 													AltKnown = 0
 												end
 											end
-										else
+										else 
 										local nb_chars = table.getn( MTS_DATA.Characters );
 											for i=1, nb_chars do
-												if (MTS_DATA[value][localeRecipes].LearntBy[i] ~= nil ) then
+												if (MTS_DATA[value][localeRecipes].LearntBy[i] ~= nil ) then 
 														for q=1,4 do
 															if (MTS_DATA[value][localeRecipes].LearntBy[i] == MTS_TRADESKILL_SKILLLEVEL[q]) then
 																Altskilllevel_color = MTS_DATA.Characters[i].Options.MTS_TRADESKILL_SKILLLEVEL_COLOR[q];
 															end
 														end
-													if ( MTS_DATA.Characters[i].Realm == MTS_DATA.Characters[MTS_CHAR_INDEX].Realm and MTS_DATA.Characters[i].Faction == MTS_DATA.Characters[MTS_CHAR_INDEX].Faction) then
+													if ( MTS_DATA.Characters[i].Realm == MTS_DATA.Characters[MTS_CHAR_INDEX].Realm and MTS_DATA.Characters[i].Faction == MTS_DATA.Characters[MTS_CHAR_INDEX].Faction) then 
 													AltKnownBy = AltKnownBy .."  |r" .. Altskilllevel_color .. "[".. MTS_DATA.Characters[i].Name .."]|r";
 													end
 												end
@@ -713,16 +715,16 @@ function MasterTradeSkills_CheckRecurse(name)
 							isreagent = {};
 								isreagent = ReagentData_GetProfessions(recurseRecipes);
 									prechar = " -";
-								if ( isreagent == nil ) then
-
+								if ( isreagent == nil ) then 
+								
 								else
 									for key, value in isreagent do
 									prechar = "+";
 									end
 								end
 							textr = MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_SOURCE_COLOR .. value.." ("..skill..")";
-								if (AltKnownBy ~= "" and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME == 1 ) then
-								   textr =  AltKnownBy;
+								if (AltKnownBy ~= "" and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME == 1 ) then 
+								   textr =  AltKnownBy;			
 								end
 							MTS_RecipeList:AddMessage(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_RECIPE_RECIPE_COLOR .."    "..prechar.."|r"..skilllevel_color..localeRecipes.."   " .. textr .."|r");
 						end
@@ -735,9 +737,9 @@ end
 
 
 function MTS_CompareSkilllvl(a,b)
-	if ( MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWREV ) then
+	if ( MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWREV ) then 
 		return a.skilllvl > b.skilllvl;
-	else
+	else 
 		return a.skilllvl < b.skilllvl;
 	end
 end
@@ -746,82 +748,76 @@ function MTS_CompareName(a,b)
 	return string.lower(a.name) < string.lower(b.name);
 end
 
-function MasterTradeSkills_OnShow()
-
+function MasterTradeSkills_OnShow(self)
+	
 	if (MTS_PLAYER_NAME_KNOWN and MTS_VARIABLES_LOADED and MTS_DATA_CHECKED and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE == 1) then
-		-- show info in tooltip
-		if ( MouseIsOver(MinimapCluster) == 1 and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER == 1 ) then
-
-			GameTooltip:Show();
+		--show info in tooltip
+		if ( MouseIsOver(MinimapCluster) == 1 and MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER == 1 ) then 
+			
+			self:Show();
 		else
 			local lbl = getglobal("GameTooltipTextLeft1");
-
+			
 			if lbl  then
 				local name = lbl:GetText();
 				name = string.gsub(name, "Vein","Ore");
 				name = string.gsub(name, "Deposit","Ore");
-				if ( strfind(name,"Ore") ~= nil ) then
+				if ( strfind(name,"Ore") ~= nil ) then 
 					name = string.gsub(name, "Rich ","");
 					name = string.gsub(name, "Small ","");
 					name = string.gsub(name, "Ooze Covered ","");
 				end
 
-				MasterTradeSkills_CheckTooltipInfo(GameTooltip, name);
+				--MasterTradeSkills_CheckTooltipInfo(GameTooltip, name);
 			end
 		end
-	else
-
-		GameTooltip:Show();
+	else		
+	
+	self:Show();
 	end
 end
 
 function MasterTradeSkills_Write(chat_text)
-	DEFAULT_CHAT_FRAME:AddMessage(chat_text, 0.0, 1.0, 0.0);
+	DEFAULT_CHAT_FRAME:AddMessage(chat_text, 0.0, 1.0, 0.0);	
 end
 
--- function MasterTradeSkills_ReadCrafts()
--- 	local tradeskill, trade_rank = GetTradeSkillLine();
--- 	local c = GetNumTradeSkills();
--- 		for i=1, c do
--- 			local crafted_object, skill_type = GetTradeSkillInfo(i);
--- 			if (crafted_object and skill_type ~= "header") then
--- 				if (MTS_DATA[tradeskill] == nil) then MTS_DATA[tradeskill] = {} end;
--- 				if (MTS_DATA[tradeskill][crafted_object] == nil) then MTS_DATA[tradeskill][crafted_object] = {} end;
--- 				if (MTS_DATA[tradeskill][crafted_object].LearntBy == nil) then MTS_DATA[tradeskill][crafted_object].LearntBy = {} end;
--- 				if (MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] == nil) then MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = {} end;
--- 					MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
--- 				end
--- 			end
-
-
--- end
-
-function MasterTradeSkills_ReadRecipes(window)
-	local crafted_object, skill_type = nil;
-	local tradeskill, trade_rank, maxLevel, skillLineModifier = nil;
-	local x = nil;
-	if(window == "craft") then
-		tradeskill = GetCraftSkillLine(1);
-		x = GetNumCrafts();
-	elseif(window == "trade") then
-		tradeskill, trade_rank, maxLevel, skillLineModifier = GetTradeSkillLine();
-		x = GetNumTradeSkills();
+function MasterTradeSkills_ReadRecipes()
+	local tradeskill, trade_rank = GetTradeSkillLine();
+	if (MasterTradeSkill_IsTradeSkill(tradeskill)) then
+		for i=1, GetNumTradeSkills() do
+			local crafted_object, skill_type = GetTradeSkillInfo(i);
+			if (MTS_DATA[tradeskill] == nil) then
+				MTS_DATA[tradeskill] = {};
+			end
+			if (MTS_DATA[tradeskill][crafted_object] == nil) then
+				MTS_DATA[tradeskill][crafted_object] = {};
+				MTS_DATA[tradeskill][crafted_object].LearntBy = {};
+				MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
+			-- else
+			-- 	--MTS_Write(crafted_object .. " - " .. skill_type);
+			-- 	MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
+			end
+		end
 	end
+end
 
-    for i=1,x do
-		if(window == "craft") then
-			crafted_object, _, skill_type, _, _, _, _ = GetCraftInfo(i);
-		elseif(window == "trade") then
-			crafted_object, skill_type, _, _, _, _ = GetTradeSkillInfo(i);
-		end;
+function MasterTradeSkills_ReadCrafts()
+	local tradeskill, trade_rank = GetCraftSkillLine(1);
+	if (tradeskill and MasterTradeSkill_IsTradeSkill(tradeskill)) then
+		for i=1, GetNumCrafts() do
+			local crafted_object, craftSubSpellName, skill_type = GetCraftInfo(i);
 
-		if (crafted_object and skill_type ~= "header") then
-			if (MTS_DATA[tradeskill] == nil) then MTS_DATA[tradeskill] = {} end;
-			if (MTS_DATA[tradeskill][crafted_object] == nil) then MTS_DATA[tradeskill][crafted_object] = {} end;
-			if (MTS_DATA[tradeskill][crafted_object].LearntBy == nil) then MTS_DATA[tradeskill][crafted_object].LearntBy = {} end;
-			if (MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] == nil) then MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = {} end;
-			MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
-
+			if (MTS_DATA[tradeskill] == nil) then
+				MTS_DATA[tradeskill] = {};
+			end
+			if (MTS_DATA[tradeskill][crafted_object] == nil) then
+				MTS_DATA[tradeskill][crafted_object] = {};
+				MTS_DATA[tradeskill][crafted_object].LearntBy = {};
+				MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
+			--else
+				--MTS_Write(crafted_object .. " - " .. skill_type);
+				--MTS_DATA[tradeskill][crafted_object].LearntBy[MTS_CHAR_INDEX] = skill_type;
+			end
 		end
 	end
 end
@@ -855,7 +851,7 @@ end
 function MTS_Options_Toggle()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE = 0;
-	else
+	else 
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE = 1;
 	end
 	MTS_OptionsFrameCheck_Enabled:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_STATE);
@@ -865,7 +861,7 @@ function MTS_Options_ToggleShowLearned()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWLEARNED == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWLEARNED = 0;
 	else
-		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWLEARNED = 1;
+		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWLEARNED = 1;	
 	end
 	MTS_OptionsFrameCheck_ShowLearned:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWLEARNED);
 end
@@ -874,7 +870,7 @@ function MTS_Options_ToggleShowNotLearned()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWNOTLEARNED == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWNOTLEARNED = 0;
 	else
-		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWNOTLEARNED = 1;
+		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWNOTLEARNED = 1;	
 	end
 	MTS_OptionsFrameCheck_ShowNotLearned:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOWNOTLEARNED);
 end
@@ -883,7 +879,7 @@ function MTS_Options_ToggleUnknown()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM = 0;
 	else
-		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM = 1;
+		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM = 1;	
 	end
 	MTS_OptionsFrameCheck_UnknownToBot:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_UNKNOWNTOBOTTOM);
 end
@@ -892,7 +888,7 @@ function MTS_Options_ToggleAltName()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME = 0;
 	else
-		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME = 1;
+		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME = 1;	
 	end
 	MTS_OptionsFrameCheck_AltName:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_ALTNAME);
 end
@@ -901,7 +897,7 @@ function MTS_Options_ToggleMinimap()
 	if (MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER == 1) then
 		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER = 0;
 	else
-		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER = 1;
+		MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER = 1;	
 	end
 	MTS_OptionsFrameCheck_NoMinimap:SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_MOUSEOVER);
 end
@@ -917,6 +913,30 @@ function MTS_Options_ToggleShowTradeSkills(arg1, arg2)
 	getglobal("MTS_OptionsFrameCheck_ShowTradeSkills" .. arg2):SetChecked(MTS_DATA.Characters[MTS_CHAR_INDEX].Options.MTS_SHOW_TRADESKILLS[arg2]);
 end
 
+-- function MTS_SetItemRef(arg1,arg2,arg3)
+-- 	if ( strsub(arg1, 1, 6) == "player" ) then
+-- 		return MTS_Original_SetItemRef(arg1,arg2,arg3);
+-- 	end
+-- 	if ( IsControlKeyDown() or  IsShiftKeyDown()  ) then
+-- 		return MTS_Original_SetItemRef(arg1,arg2,arg3);
+-- 	end
+-- 	if (IRR_ItemTypes) then
+-- 		return MTS_Original_SetItemRef(arg1,arg2,arg3);
+-- 	end
+
+-- 	ShowUIPanel(ItemRefTooltip);
+-- 	if ( not ItemRefTooltip:IsVisible() ) then
+-- 		ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+-- 	end
+-- 	ItemRefTooltip:SetHyperlink( arg1);
+-- 	if ( HealPoints ) then		
+-- 		HealPoints:DrawTooltip(ItemRefTooltip, arg1);
+-- 	end
+-- 	local name, ilink, quality = GetItemInfo( arg1 );
+
+-- 	MasterTradeSkills_CheckTooltipInfo(ItemRefTooltip, name);
+-- 	return ;
+-- end
 
 GameTooltip:HookScript("OnTooltipSetItem", function(tooltip, ...)
 	local name, link = tooltip:GetItem();
