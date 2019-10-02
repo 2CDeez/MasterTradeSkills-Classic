@@ -4,9 +4,15 @@
 ## Notes: This AddOn adjusts the display of the tooltips to show which recipe is being used by the item your hovering above
 ## Author: Triadian
 ## eMail: Triadian@Gmail.com
-## Version: 1.12
+## Version: 1.13
 ## Dependencies: ReagentData
 ## OptionalDeps: MyAddons
 ## DefaultState: enabled
 ## SavedVariables: MTS_DATA
+
+Localization.lua
+MasterTradeSkills.lua
 MasterTradeSkills.xml
+
+
+
